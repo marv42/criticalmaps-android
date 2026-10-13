@@ -112,8 +112,8 @@ public class ServerSyncService extends Service {
 
     public static void startService() {
         App app = App.components().app();
-        if (!LocationUpdateManager.checkPermission()) {
-            Timber.d("ServerSyncService cannot be started without location and notification permission.");
+        if (!LocationUpdateManager.checkLocationPermissions()) {
+            Timber.d("ServerSyncService cannot be started without location permission.");
             return;
         }
 

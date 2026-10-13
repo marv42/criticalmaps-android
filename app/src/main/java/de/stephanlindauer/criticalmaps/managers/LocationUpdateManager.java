@@ -1,9 +1,15 @@
 package de.stephanlindauer.criticalmaps.managers;
 
-import android.Manifest;
+import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.Manifest.permission.POST_NOTIFICATIONS;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+
+import static de.stephanlindauer.criticalmaps.events.GpsStatusChangedEvent.Status.NONEXISTENT;
+import static de.stephanlindauer.criticalmaps.events.GpsStatusChangedEvent.Status.NO_PERMISSIONS;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -49,10 +55,15 @@ public class LocationUpdateManager {
             LocationManager.NETWORK_PROVIDER};
 
     @SuppressLint("InlinedApi")
-    private final String[] PERMISSIONS = {
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.POST_NOTIFICATIONS};
+    private final String[] ALL_PERMISSIONS = {
+            ACCESS_FINE_LOCATION,
+            ACCESS_COARSE_LOCATION,
+            // TODO LocationUpdateManager should not have to deal with notification permissions
+            POST_NOTIFICATIONS};
+    @SuppressLint("InlinedApi")
+    private final String[] LOCATION_PERMISSIONS = {
+            ACCESS_FINE_LOCATION,
+            ACCESS_COARSE_LOCATION};
     private final LocationManager locationManager;
     private Location lastPublishedLocation;
 
@@ -153,12 +164,12 @@ public class LocationUpdateManager {
 
     public void initialize() {
         boolean noProviderExists = !checkIfAtLeastOneProviderExits();
-        boolean noPermission = !checkPermission();
+        boolean noPermission = !checkLocationPermissions();
 
         if (noProviderExists) {
-            Events.GPS_STATUS_CHANGED_EVENT.status = GpsStatusChangedEvent.Status.NONEXISTENT;
+            Events.GPS_STATUS_CHANGED_EVENT.status = NONEXISTENT;
         } else if (noPermission) {
-            Events.GPS_STATUS_CHANGED_EVENT.status = GpsStatusChangedEvent.Status.NO_PERMISSIONS;
+            Events.GPS_STATUS_CHANGED_EVENT.status = NO_PERMISSIONS;
         } else {
             setStatusEvent();
         }
@@ -204,16 +215,33 @@ public class LocationUpdateManager {
     }
 
     @SuppressLint("InlinedApi")
-    public static boolean checkPermission() {
+    public static boolean checkAllPermissions() {
         App app = App.components().app();
-        return (ContextCompat.checkSelfPermission(app, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                || ContextCompat.checkSelfPermission(app, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED)
-                && ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+        return (ContextCompat.checkSelfPermission(app, ACCESS_FINE_LOCATION) == PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(app, ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED)
+                && ContextCompat.checkSelfPermission(app, POST_NOTIFICATIONS) == PERMISSION_GRANTED;
     }
 
-    public void requestPermission() {
+    public void requestAllPermissions() {
         PermissionRequest permissionRequest = new PermissionRequest(
-                PERMISSIONS,
+                ALL_PERMISSIONS,
+                app.getString(R.string.map_location_permissions_rationale_text),
+                this::startListening,
+                null,
+                this::setAndPostPermissionPermanentlyDeniedEvent);
+        permissionCheckHandler.requestPermissionsWithRationaleIfNeeded(permissionRequest);
+    }
+
+    @SuppressLint("InlinedApi")
+    public static boolean checkLocationPermissions() {
+        App app = App.components().app();
+        return ContextCompat.checkSelfPermission(app, ACCESS_FINE_LOCATION) == PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(app, ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED;
+    }
+
+    public void requestLocationPermissions() {
+        PermissionRequest permissionRequest = new PermissionRequest(
+                LOCATION_PERMISSIONS,
                 app.getString(R.string.map_location_permissions_rationale_text),
                 this::startListening,
                 null,

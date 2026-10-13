@@ -1,6 +1,12 @@
 package de.stephanlindauer.criticalmaps.fragments;
 
 import static de.stephanlindauer.criticalmaps.events.Events.NEW_LOCATION_EVENT;
+import static de.stephanlindauer.criticalmaps.events.GpsStatusChangedEvent.Status.DISABLED;
+import static de.stephanlindauer.criticalmaps.events.GpsStatusChangedEvent.Status.HIGH_ACCURACY;
+import static de.stephanlindauer.criticalmaps.events.GpsStatusChangedEvent.Status.LOW_ACCURACY;
+import static de.stephanlindauer.criticalmaps.events.GpsStatusChangedEvent.Status.NONEXISTENT;
+import static de.stephanlindauer.criticalmaps.events.GpsStatusChangedEvent.Status.NO_PERMISSIONS;
+import static de.stephanlindauer.criticalmaps.events.GpsStatusChangedEvent.Status.PERMISSION_PERMANENTLY_DENIED;
 import static de.stephanlindauer.criticalmaps.utils.MapViewUtils.dpToInt;
 
 import android.animation.AnimatorInflater;
@@ -134,7 +140,7 @@ public class MapFragment extends Fragment {
     private final View.OnClickListener gpsNoPermissionsOnClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            locationUpdateManager.requestPermission();
+            locationUpdateManager.requestLocationPermissions();
         }
     };
 
@@ -250,7 +256,7 @@ public class MapFragment extends Fragment {
             isInitialLocationSet = savedState.getBoolean(KEY_INITIAL_LOCATION_SET, false);
         }
 
-        if (!LocationUpdateManager.checkPermission()) {
+        if (!LocationUpdateManager.checkLocationPermissions()) {
             zoomToLocation(defaultGeoPoint, NO_GPS_PERMISSION_ZOOM_LEVEL);
         }
     }
@@ -449,16 +455,16 @@ public class MapFragment extends Fragment {
 
     @Subscribe
     public void handleGpsStatusChangedEvent(GpsStatusChangedEvent e) {
-        if (e.status == GpsStatusChangedEvent.Status.NONEXISTENT) {
+        if (e.status == NONEXISTENT) {
             setGpsStatusNonexistent();
-        } else if (e.status == GpsStatusChangedEvent.Status.DISABLED) {
+        } else if (e.status == DISABLED) {
             setGpsStatusDisabled();
-        } else if (e.status == GpsStatusChangedEvent.Status.PERMISSION_PERMANENTLY_DENIED) {
+        } else if (e.status == PERMISSION_PERMANENTLY_DENIED) {
             setGpsStatusPermissionsPermanentlyDenied();
-        } else if (e.status == GpsStatusChangedEvent.Status.NO_PERMISSIONS) {
+        } else if (e.status == NO_PERMISSIONS) {
             setGpsStatusNoPermissions();
-        } else if (e.status == GpsStatusChangedEvent.Status.LOW_ACCURACY ||
-                e.status == GpsStatusChangedEvent.Status.HIGH_ACCURACY) {
+        } else if (e.status == LOW_ACCURACY ||
+                e.status == HIGH_ACCURACY) {
             if (ownLocationModel.ownLocation != null) {
                 setGpsStatusFixed();
             } else {

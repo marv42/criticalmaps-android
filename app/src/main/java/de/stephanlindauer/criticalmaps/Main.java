@@ -84,8 +84,8 @@ public class Main extends AppCompatActivity implements NavigationView.OnNavigati
                         setKeepScreenOn();
                         break;
                     case SharedPrefsKeys.PRIVACY_POLICY_ACCEPTED:
-                        if (!LocationUpdateManager.checkPermission()) {
-                            locationUpdateManager.requestPermission();
+                        if (!LocationUpdateManager.checkAllPermissions()) {
+                            locationUpdateManager.requestAllPermissions();
                         }
                         break;
                 }
@@ -502,7 +502,7 @@ public class Main extends AppCompatActivity implements NavigationView.OnNavigati
     }
 
     private void initiateServiceStartIfPermitted() {
-        if (LocationUpdateManager.checkPermission()) {
+        if (LocationUpdateManager.checkLocationPermissions()) {
             if (!ServerSyncService.isCurrentlyRunning()) {
                 Timber.d("Location and notification permissions granted. Attempting to start ServerSyncService.");
                 ServerSyncService.startService();
